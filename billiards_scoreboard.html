@@ -240,6 +240,23 @@
     font-size: 20px; letter-spacing: 1px;
     cursor: pointer; margin-top: 14px;
   }
+  .remove-player-btn {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: transparent; border: 1px solid var(--border);
+    color: var(--red); font-size: 16px; line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; flex-shrink: 0;
+  }
+  .add-player-btn {
+    width: 100%; padding: 11px;
+    background: transparent;
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    color: var(--muted); font-size: 13px; font-weight: 500;
+    cursor: pointer; margin-top: 10px;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .add-player-btn:active { border-color: var(--accent2); color: var(--accent2); }
   .reset-link {
     display: block; text-align: center;
     font-size: 12px; color: var(--red);
@@ -513,12 +530,44 @@ function renderLog() {
 
 function renderPlayerEdit() {
   document.getElementById('inp-stake').value = stake;
-  document.getElementById('player-inputs').innerHTML = players.map((p,i) =>
-    `<div class="player-row">
+  const container = document.getElementById('player-inputs');
+  container.innerHTML = players.map((p,i) =>
+    `<div class="player-row" id="prow-${i}">
       <div class="avatar av${i%5}" style="width:32px;height:32px;font-size:12px;">${p.slice(0,2).toUpperCase()}</div>
       <input class="player-input" value="${p}" id="pinput-${i}" placeholder="Player ${i+1}"/>
+      <button class="remove-player-btn" onclick="removePlayerRow(${i})" title="Remove">−</button>
     </div>`
-  ).join('');
+  ).join('') +
+  `<button class="add-player-btn" onclick="addPlayerRow()">＋ Add player</button>`;
+}
+
+function addPlayerRow() {
+  const container = document.getElementById('player-inputs');
+  const addBtn = container.querySelector('.add-player-btn');
+  const i = container.querySelectorAll('.player-row').length;
+  const div = document.createElement('div');
+  div.className = 'player-row';
+  div.id = 'prow-' + i;
+  div.innerHTML = `
+    <div class="avatar av${i%5}" style="width:32px;height:32px;font-size:12px;">P${i+1}</div>
+    <input class="player-input" id="pinput-${i}" placeholder="Player ${i+1}" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;padding:8px 12px;outline:none;flex:1;"/>
+    <button class="remove-player-btn" onclick="removePlayerRow(${i})" title="Remove">−</button>`;
+  container.insertBefore(div, addBtn);
+  div.querySelector('input').focus();
+}
+
+function removePlayerRow(i) {
+  const rows = document.querySelectorAll('.player-row');
+  if (rows.length <= 2) { alert('Need at least 2 players!'); return; }
+  document.getElementById('prow-' + i)?.remove();
+  // Re-index remaining rows
+  document.querySelectorAll('.player-row').forEach((row, ni) => {
+    row.id = 'prow-' + ni;
+    const inp = row.querySelector('input');
+    if (inp) { inp.id = 'pinput-' + ni; inp.placeholder = 'Player ' + (ni+1); }
+    const btn = row.querySelector('.remove-player-btn');
+    if (btn) btn.setAttribute('onclick', `removePlayerRow(${ni})`);
+  });
 }
 
 // ── Actions ──
@@ -546,10 +595,13 @@ function removeGame(idx) {
 }
 
 function savePlayers() {
-  const newNames = players.map((_,i) => {
-    const v = document.getElementById('pinput-'+i)?.value?.trim();
-    return v || players[i];
+  const rows = document.querySelectorAll('.player-row');
+  const newNames = [];
+  rows.forEach((_, i) => {
+    const v = document.getElementById('pinput-' + i)?.value?.trim();
+    if (v) newNames.push(v);
   });
+  if (newNames.length < 2) { alert('Need at least 2 players!'); return; }
   const newStake = parseInt(document.getElementById('inp-stake').value) || 100;
   players = newNames;
   stake = newStake;
