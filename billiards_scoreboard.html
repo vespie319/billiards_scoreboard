@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+<title>Billiards Tracker</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap');
+
+  :root {
+    --bg: #0f0f0f;
+    --surface: #1a1a1a;
+    --surface2: #242424;
+    --border: #2e2e2e;
+    --accent: #c8f048;
+    --accent2: #48d4c8;
+    --red: #ff4f4f;
+    --green: #4fcc7a;
+    --text: #f0f0f0;
+    --muted: #888;
+    --radius: 12px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Header ── */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 20px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+  .header-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 1px;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .header-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .edit-btn {
+    font-size: 13px; font-family: 'DM Sans', sans-serif;
+    padding: 6px 14px; border-radius: 20px;
+    border: 1px solid var(--border);
+    background: transparent; color: var(--muted); cursor: pointer;
+  }
+  .edit-btn.active { border-color: var(--accent); color: var(--accent); }
+
+  /* ── Tabs ── */
+  .tabs {
+    display: flex;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    flex: 1; min-width: 80px;
+    padding: 12px 8px;
+    font-size: 12px; font-weight: 500;
+    text-align: center; color: var(--muted);
+    border-bottom: 2px solid transparent;
+    cursor: pointer; white-space: nowrap;
+    transition: color 0.15s;
+  }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* ── Pages ── */
+  .page { display: none; padding: 16px; }
+  .page.active { display: block; }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+  .card-title {
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 14px;
+  }
+
+  /* ── Add Game ── */
+  .game-form { display: flex; flex-direction: column; gap: 12px; }
+  .form-row { display: flex; align-items: center; gap: 10px; }
+  .form-row label { font-size: 12px; color: var(--muted); min-width: 46px; }
+  select, input[type=number] {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    padding: 10px 12px;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  select:focus, input:focus { border-color: var(--accent); }
+  .add-btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--accent);
+    color: #0f0f0f;
+    border: none; border-radius: 10px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px; letter-spacing: 1px;
+    cursor: pointer; transition: opacity 0.15s;
+  }
+  .add-btn:active { opacity: 0.8; }
+
+  /* ── Standings ── */
+  .standing-row {
+    display: flex; align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+  }
+  .standing-row:last-child { border-bottom: none; }
+  .rank {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px; color: var(--muted);
+    min-width: 28px;
+  }
+  .avatar {
+    width: 40px; height: 40px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 600;
+    flex-shrink: 0;
+  }
+  .standing-info { flex: 1; }
+  .standing-name { font-size: 15px; font-weight: 600; }
+  .standing-record { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .standing-bal { font-size: 17px; font-weight: 600; text-align: right; }
+  .pos { color: var(--green); }
+  .neg { color: var(--red); }
+  .zero { color: var(--muted); }
+
+  /* ── Matrix ── */
+  .matrix-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .matrix-table {
+    border-collapse: collapse;
+    font-size: 11px;
+    min-width: 100%;
+  }
+  .matrix-table th, .matrix-table td {
+    padding: 8px 6px;
+    text-align: center;
+    border: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  .matrix-table th {
+    background: var(--surface2);
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .matrix-table .row-head {
+    background: var(--surface2);
+    font-weight: 600;
+    color: var(--text);
+    text-align: left;
+    padding-left: 10px;
+  }
+  .m-win { background: #1a2e18; color: var(--green); font-weight: 600; }
+  .m-loss { background: #2e1818; color: var(--red); }
+  .m-self { background: var(--bg); color: var(--border); }
+  .m-sub { font-size: 10px; display: block; opacity: 0.75; }
+
+  /* ── Game Log ── */
+  .log-item {
+    display: flex; align-items: center;
+    padding: 11px 0;
+    border-bottom: 1px solid var(--border);
+    gap: 10px;
+  }
+  .log-item:last-child { border-bottom: none; }
+  .log-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+  .log-text { flex: 1; font-size: 13px; line-height: 1.5; }
+  .log-text b { font-weight: 600; }
+  .log-time { font-size: 11px; color: var(--muted); }
+  .del-btn {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--red); font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; flex-shrink: 0;
+  }
+  .empty-state {
+    text-align: center; padding: 40px 20px;
+    color: var(--muted); font-size: 14px; line-height: 1.8;
+  }
+  .empty-icon { font-size: 36px; margin-bottom: 10px; }
+
+  /* ── Players Edit ── */
+  .player-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 0; border-bottom: 1px solid var(--border);
+  }
+  .player-row:last-child { border-bottom: none; }
+  .player-input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    padding: 8px 12px;
+    outline: none;
+  }
+  .player-input:focus { border-color: var(--accent); }
+  .save-btn {
+    width: 100%;
+    padding: 12px;
+    background: var(--accent2);
+    color: #0f0f0f;
+    border: none; border-radius: 10px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px; letter-spacing: 1px;
+    cursor: pointer; margin-top: 14px;
+  }
+  .reset-link {
+    display: block; text-align: center;
+    font-size: 12px; color: var(--red);
+    margin-top: 14px; cursor: pointer; padding: 8px;
+  }
+
+  /* ── Avatar colors ── */
+  .av0 { background: #2e1f4a; color: #b48aff; }
+  .av1 { background: #1a2e2e; color: #48d4c4; }
+  .av2 { background: #2e2a1a; color: #f0c040; }
+  .av3 { background: #2e1e1e; color: #ff8080; }
+  .av4 { background: #1a2a1a; color: #4fcc7a; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-title">🎱 Billiards</div>
+    <div class="header-sub" id="stake-display">₱100 per game · 5 players</div>
+  </div>
+  <button class="edit-btn" onclick="toggleEditPlayers()" id="edit-toggle">Edit players</button>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('game')">Add Game</div>
+  <div class="tab" onclick="showTab('standings')">Standings</div>
+  <div class="tab" onclick="showTab('matrix')">Head-to-Head</div>
+  <div class="tab" onclick="showTab('log')">Game Log</div>
+</div>
+
+<!-- ADD GAME -->
+<div class="page active" id="page-game">
+  <div class="card">
+    <div class="card-title">Log a result</div>
+    <div class="game-form">
+      <div class="form-row">
+        <label>Winner</label>
+        <select id="sel-winner"></select>
+      </div>
+      <div class="form-row">
+        <label>Loser</label>
+        <select id="sel-loser"></select>
+      </div>
+      <div class="form-row">
+        <label>Stake ₱</label>
+        <input type="number" id="inp-amount" value="100" min="1" inputmode="numeric"/>
+      </div>
+      <button class="add-btn" onclick="addGame()">RECORD RESULT</button>
+    </div>
+  </div>
+</div>
+
+<!-- STANDINGS -->
+<div class="page" id="page-standings">
+  <div class="card">
+    <div class="card-title">Net balance · win-loss</div>
+    <div id="standings-list"></div>
+  </div>
+  <div class="card" id="settle-card">
+    <div class="card-title">How to settle up</div>
+    <div id="settle-list"></div>
+  </div>
+</div>
+
+<!-- MATRIX -->
+<div class="page" id="page-matrix">
+  <div class="card">
+    <div class="card-title">Head-to-head record (W-L · net)</div>
+    <div class="matrix-scroll" id="matrix-wrap"></div>
+  </div>
+</div>
+
+<!-- GAME LOG -->
+<div class="page" id="page-log">
+  <div class="card">
+    <div class="card-title">All games</div>
+    <div id="log-list"></div>
+  </div>
+</div>
+
+<!-- EDIT PLAYERS (hidden overlay-card) -->
+<div class="page" id="page-players">
+  <div class="card">
+    <div class="card-title">Player names</div>
+    <div id="player-inputs"></div>
+    <div class="form-row" style="margin-top:14px;">
+      <label style="min-width:56px">Stake ₱</label>
+      <input type="number" id="inp-stake" value="100" min="1" inputmode="numeric" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;padding:10px 12px;outline:none;"/>
+    </div>
+    <button class="save-btn" onclick="savePlayers()">SAVE CHANGES</button>
+    <span class="reset-link" onclick="resetAll()">⚠ Reset all game data</span>
+  </div>
+</div>
+
+<script>
+// ── State ──
+function load(k, def) { try { return JSON.parse(localStorage.getItem(k)) ?? def; } catch { return def; } }
+function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+
+let players = load('bil_players', ['Alex','Ben','Cris','Dana','Eli']);
+let stake = load('bil_stake', 100);
+let games = load('bil_games', []);
+let editMode = false;
+let currentTab = 'game';
+
+// ── Tabs ──
+function showTab(t) {
+  if (editMode) return;
+  currentTab = t;
+  document.querySelectorAll('.tab').forEach((el,i) => {
+    el.classList.toggle('active', ['game','standings','matrix','log'][i] === t);
+  });
+  ['game','standings','matrix','log','players'].forEach(id => {
+    document.getElementById('page-'+id).classList.toggle('active', id === t);
+  });
+  render();
+}
+
+function toggleEditPlayers() {
+  editMode = !editMode;
+  document.getElementById('edit-toggle').classList.toggle('active', editMode);
+  document.getElementById('edit-toggle').textContent = editMode ? 'Done' : 'Edit players';
+  document.querySelectorAll('.tab').forEach(el => el.style.opacity = editMode ? '0.3' : '1');
+  ['game','standings','matrix','log'].forEach(id => {
+    document.getElementById('page-'+id).classList.remove('active');
+  });
+  document.getElementById('page-players').classList.toggle('active', editMode);
+  if (editMode) renderPlayerEdit();
+  else { showTab(currentTab); }
+}
+
+// ── Stats ──
+function getStats() {
+  const stats = {};
+  players.forEach(p => {
+    stats[p] = { wins:0, losses:0, balance:0, vs:{} };
+    players.forEach(q => { if (q!==p) stats[p].vs[q] = {wins:0,losses:0,net:0}; });
+  });
+  games.forEach(g => {
+    if (!stats[g.w] || !stats[g.l]) return;
+    stats[g.w].wins++;
+    stats[g.l].losses++;
+    stats[g.w].balance += g.amt;
+    stats[g.l].balance -= g.amt;
+    stats[g.w].vs[g.l].wins++;
+    stats[g.w].vs[g.l].net += g.amt;
+    stats[g.l].vs[g.w].losses++;
+    stats[g.l].vs[g.w].net -= g.amt;
+  });
+  return stats;
+}
+
+// ── Settle up algorithm ──
+function settleDebts(stats) {
+  const bal = players.map(p => ({ name: p, bal: stats[p].balance }));
+  const creditors = bal.filter(x => x.bal > 0).sort((a,b) => b.bal - a.bal);
+  const debtors = bal.filter(x => x.bal < 0).sort((a,b) => a.bal - b.bal);
+  const txns = [];
+  let ci = 0, di = 0;
+  const c = creditors.map(x => ({...x}));
+  const d = debtors.map(x => ({...x}));
+  while (ci < c.length && di < d.length) {
+    const amt = Math.min(c[ci].bal, -d[di].bal);
+    if (amt > 0) txns.push({ from: d[di].name, to: c[ci].name, amt });
+    c[ci].bal -= amt;
+    d[di].bal += amt;
+    if (Math.abs(c[ci].bal) < 1) ci++;
+    if (Math.abs(d[di].bal) < 1) di++;
+  }
+  return txns;
+}
+
+// ── Render ──
+function render() {
+  const stats = getStats();
+  updateSelects();
+  updateHeader();
+  if (currentTab === 'standings') renderStandings(stats);
+  if (currentTab === 'matrix') renderMatrix(stats);
+  if (currentTab === 'log') renderLog();
+}
+
+function updateHeader() {
+  document.getElementById('stake-display').textContent = `₱${stake.toLocaleString()} per game · ${players.length} players`;
+}
+
+function updateSelects() {
+  ['sel-winner','sel-loser'].forEach((id,i) => {
+    const el = document.getElementById(id);
+    const prev = el.value;
+    el.innerHTML = players.map(p => `<option>${p}</option>`).join('');
+    if (players.includes(prev)) el.value = prev;
+    else el.selectedIndex = i === 1 && players.length > 1 ? 1 : 0;
+  });
+}
+
+function renderStandings(stats) {
+  const sorted = [...players].sort((a,b) => stats[b].balance - stats[a].balance);
+  let html = '';
+  sorted.forEach((p,i) => {
+    const s = stats[p];
+    const bal = s.balance;
+    const cls = bal > 0 ? 'pos' : bal < 0 ? 'neg' : 'zero';
+    const sign = bal > 0 ? '+₱' : bal < 0 ? '-₱' : '₱';
+    const initials = p.slice(0,2).toUpperCase();
+    html += `<div class="standing-row">
+      <div class="rank">${i+1}</div>
+      <div class="avatar av${players.indexOf(p)%5}">${initials}</div>
+      <div class="standing-info">
+        <div class="standing-name">${p}</div>
+        <div class="standing-record">${s.wins}W · ${s.losses}L · ${s.wins+s.losses} games</div>
+      </div>
+      <div class="standing-bal ${cls}">${sign}${Math.abs(bal).toLocaleString()}</div>
+    </div>`;
+  });
+  document.getElementById('standings-list').innerHTML = html || '<div class="empty-state">No games yet.</div>';
+
+  const txns = settleDebts(stats);
+  const sc = document.getElementById('settle-card');
+  if (txns.length === 0) { sc.style.display = 'none'; return; }
+  sc.style.display = '';
+  document.getElementById('settle-list').innerHTML = txns.map(t =>
+    `<div style="padding:9px 0;border-bottom:1px solid var(--border);font-size:13px;display:flex;justify-content:space-between;align-items:center;">
+      <span><b>${t.from}</b> <span style="color:var(--muted)">pays</span> <b>${t.to}</b></span>
+      <span style="color:var(--accent);font-weight:600;">₱${t.amt.toLocaleString()}</span>
+    </div>`
+  ).join('') || '';
+}
+
+function renderMatrix(stats) {
+  let html = `<table class="matrix-table"><thead><tr><th>↓ vs →</th>`;
+  players.forEach(p => html += `<th>${p.slice(0,4)}</th>`);
+  html += `<th>W-L</th></tr></thead><tbody>`;
+  players.forEach(row => {
+    html += `<tr><td class="row-head">${row}</td>`;
+    players.forEach(col => {
+      if (row === col) { html += `<td class="m-self">—</td>`; return; }
+      const v = stats[row].vs[col];
+      const tot = v.wins + v.losses;
+      if (tot === 0) { html += `<td style="color:var(--border)">-</td>`; return; }
+      const cls = v.wins > v.losses ? 'm-win' : v.wins < v.losses ? 'm-loss' : '';
+      const sign = v.net >= 0 ? '+' : '';
+      html += `<td class="${cls}">${v.wins}-${v.losses}<span class="m-sub">${sign}₱${Math.abs(v.net).toLocaleString()}</span></td>`;
+    });
+    const s = stats[row];
+    html += `<td style="font-weight:600;color:var(--accent)">${s.wins}-${s.losses}</td></tr>`;
+  });
+  html += '</tbody></table>';
+  document.getElementById('matrix-wrap').innerHTML = html;
+}
+
+function renderLog() {
+  const el = document.getElementById('log-list');
+  if (games.length === 0) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">🎱</div>No games logged yet.<br>Add your first result above!</div>`;
+    return;
+  }
+  el.innerHTML = [...games].reverse().map((g,ri) => {
+    const idx = games.length - 1 - ri;
+    const d = new Date(g.ts);
+    const time = d.toLocaleDateString('en-PH',{month:'short',day:'numeric'}) + ' ' + d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    return `<div class="log-item">
+      <div class="log-dot"></div>
+      <div class="log-text"><b>${g.w}</b> beat <b>${g.l}</b> · <span style="color:var(--accent)">₱${g.amt.toLocaleString()}</span></div>
+      <div class="log-time">${time}</div>
+      <div class="del-btn" onclick="removeGame(${idx})">✕</div>
+    </div>`;
+  }).join('');
+}
+
+function renderPlayerEdit() {
+  document.getElementById('inp-stake').value = stake;
+  document.getElementById('player-inputs').innerHTML = players.map((p,i) =>
+    `<div class="player-row">
+      <div class="avatar av${i%5}" style="width:32px;height:32px;font-size:12px;">${p.slice(0,2).toUpperCase()}</div>
+      <input class="player-input" value="${p}" id="pinput-${i}" placeholder="Player ${i+1}"/>
+    </div>`
+  ).join('');
+}
+
+// ── Actions ──
+function addGame() {
+  const w = document.getElementById('sel-winner').value;
+  const l = document.getElementById('sel-loser').value;
+  const amt = parseInt(document.getElementById('inp-amount').value) || stake;
+  if (w === l) { alert('Winner and loser must be different!'); return; }
+  games.push({ w, l, amt, ts: Date.now() });
+  save('bil_games', games);
+
+  const btn = document.querySelector('.add-btn');
+  const orig = btn.textContent;
+  btn.textContent = '✓ SAVED!';
+  btn.style.background = 'var(--green)';
+  setTimeout(() => { btn.textContent = orig; btn.style.background = 'var(--accent)'; }, 1000);
+}
+
+function removeGame(idx) {
+  if (confirm('Remove this game?')) {
+    games.splice(idx, 1);
+    save('bil_games', games);
+    renderLog();
+  }
+}
+
+function savePlayers() {
+  const newNames = players.map((_,i) => {
+    const v = document.getElementById('pinput-'+i)?.value?.trim();
+    return v || players[i];
+  });
+  const newStake = parseInt(document.getElementById('inp-stake').value) || 100;
+  players = newNames;
+  stake = newStake;
+  save('bil_players', players);
+  save('bil_stake', stake);
+  toggleEditPlayers();
+}
+
+function resetAll() {
+  if (confirm('Delete ALL game data? This cannot be undone.')) {
+    games = [];
+    save('bil_games', games);
+    toggleEditPlayers();
+  }
+}
+
+// ── Init ──
+render();
+</script>
+</body>
+</html>
