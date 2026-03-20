@@ -275,8 +275,8 @@
 
 <div class="header">
   <div>
-    <div class="header-title">🎱 Billiards</div>
-    <div class="header-sub" id="stake-display">₱100 per game · 5 players</div>
+    <div class="header-title">🎱 Burats Billiards Scoreboard</div>
+    <div class="header-sub" id="stake-display">Magbayad kayo</div>
   </div>
   <button class="edit-btn" onclick="toggleEditPlayers()" id="edit-toggle">Edit players</button>
 </div>
@@ -357,7 +357,7 @@
 function load(k, def) { try { return JSON.parse(localStorage.getItem(k)) ?? def; } catch { return def; } }
 function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
 
-let players = load('bil_players', ['Alex','Ben','Cris','Dana','Eli']);
+let players = load('bil_players', ['Dale','Ken','Pat','Jons','Anton']);
 let stake = load('bil_stake', 100);
 let games = load('bil_games', []);
 let editMode = false;
